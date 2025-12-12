@@ -103,9 +103,7 @@ uniform mat4 projMtx;
 uniform float time;
 
 void main() {
-    // compute per-vertex rotation based on cubeOffset (phase)
-    vec3 pos = inPos + cubeOffset;
-
+    // Compute per-vertex rotation based on cubeOffset (phase)
     float phase = cubeOffset.x + cubeOffset.y + cubeOffset.z;
     float angle = time + phase;
     vec3 axis = normalize(vec3(sin(phase), cos(phase*1.5), sin(phase*0.7)));
@@ -124,15 +122,15 @@ void main() {
     rot[2][1] = axis.z*axis.y*(1.0-c)+axis.x*s;
     rot[2][2] = axis.z*axis.z*(1.0-c)+c;
 
-    // build model matrix with rotation and translation
-    mat4 mdlvMtx = rot * mat4(1.0);
-    mdlvMtx[3] = vec4(pos, 1.0);
+    // Apply rotation to local position FIRST, then translate to world position
+    vec3 rotatedPos = (rot * vec4(inPos, 1.0)).xyz;
+    vec3 pos = rotatedPos + cubeOffset;
 
-    vec4 worldPos = mdlvMtx * vec4(inPos, 1.0);
+    vec4 worldPos = vec4(pos, 1.0);
     vtxWorldPos = worldPos.xyz;
     vtxView = -worldPos.xyz;
 
-    vec3 normal = normalize(mat3(rot) * inNormal); // rotate normal by rot
+    vec3 normal = normalize(mat3(rot) * inNormal);
     float z = (1.0 + normal.z) / 2.0;
     vtxNormalQuat = vec4(1.0, 0.0, 0.0, 0.0);
     if (z > 0.0) { vtxNormalQuat.z = sqrt(z); vtxNormalQuat.xy = normal.xy / (2.0 * vtxNormalQuat.z); }
@@ -219,8 +217,8 @@ static const Vertex cubeVertices[] = {
 };
 static const int cubeVertexCount = sizeof(cubeVertices)/sizeof(Vertex);
 
-#define GRID_SIZE 48
-#define CUBE_SPACING 1.2f
+#define GRID_SIZE 96
+#define CUBE_SPACING 2.5f
 
 static GLuint s_program = 0;
 static GLuint s_vao = 0;
